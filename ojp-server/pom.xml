@@ -19,8 +19,6 @@
         <grpc.version>1.83.1</grpc.version>
         <netty.version>4.2.18.Final</netty.version>
         <slf4j.version>2.0.18</slf4j.version>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
     </properties>
 
     <dependencyManagement>
@@ -354,8 +352,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>25</source>
-                    <target>25</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
                 </configuration>
             </plugin>
             <!--Signs the JARs for deployments-->

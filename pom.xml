@@ -22,13 +22,15 @@
         <module>ojp-xa-pool-commons</module>
         <module>ojp-testcontainers</module>
         <module>spring-boot-starter-ojp</module>
+        <module>ojp-http-server</module>
+        <module>ojp-http-server-compat</module>
     </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <lombok.version>1.18.48</lombok.version>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <slf4j.version>2.0.18</slf4j.version>
         <logback.version>1.5.38</logback.version>
         <protobuf.version>4.34.2</protobuf.version>
