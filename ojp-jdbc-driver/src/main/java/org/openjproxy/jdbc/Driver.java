@@ -9,6 +9,8 @@ import org.openjproxy.grpc.ProtoConverter;
 import org.openjproxy.grpc.client.MultinodeUrlParser;
 import org.openjproxy.grpc.client.ServerEndpoint;
 import org.openjproxy.grpc.client.StatementService;
+import org.openjproxy.grpc.client.http.HttpStatementService;
+import org.openjproxy.grpc.client.http.HttpUrlParser;
 
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
@@ -42,36 +44,63 @@ public class Driver implements java.sql.Driver {
     public java.sql.Connection connect(String url, Properties info) throws SQLException {
         log.debug("connect: url={}, info={}", url, info);
 
-        // Parse URL to extract dataSource name(s) and clean URL
-        UrlParser.UrlParseResult urlParseResult = UrlParser.parseUrlWithDataSource(url);
-        String cleanUrl = urlParseResult.cleanUrl;
-        String dataSourceName = urlParseResult.dataSourceName;
-        List<String> dataSourceNames = urlParseResult.dataSourceNames;
+        StatementService statementService;
 
-        log.debug("Parsed URL - clean: {}, dataSource: {}, dataSources: {}", cleanUrl, dataSourceName, dataSourceNames);
+        String cleanUrl;
+        String connectionUrl;
+        String dataSourceName;
 
-        // Get or create the StatementService for these endpoints
-        MultinodeUrlParser.ServiceAndUrl serviceAndUrl = MultinodeUrlParser.getOrCreateStatementService(cleanUrl, dataSourceNames);
-        StatementService statementService = serviceAndUrl.getService();
-        String connectionUrl = serviceAndUrl.getConnectionUrl();
-        List<String> serverEndpoints = serviceAndUrl.getServerEndpoints();
-        List<ServerEndpoint> serverEndpointsWithDatasources = serviceAndUrl.getServerEndpointsWithDatasources();
+        List<String> serverEndpoints = null;
 
-        // Warn when multiple endpoints carry distinct datasource names so that operators
-        // are aware of the per-server routing that will be applied.
-        if (serverEndpointsWithDatasources.size() > 1) {
-            boolean hasMultipleDatasources = serverEndpointsWithDatasources.stream()
-                .map(ServerEndpoint::getDataSourceName)
-                .distinct()
-                .count() > 1;
+        // HTTPS transport is intentionally parsed before the legacy host:port parser.
+        // Format: jdbc:ojp-http[https://proxy.example/ojp]_oracle:thin:@db:1521/ORCL
+        if (HttpUrlParser.isHttpUrl(url)) {
+            HttpUrlParser.Result httpUrl = HttpUrlParser.parse(url);
 
-            if (hasMultipleDatasources) {
-                log.warn("Per-endpoint datasources detected. Currently using first datasource '{}' for connection properties. " +
-                        "Per-server configuration will be applied based on server endpoint datasource names: {}",
-                        dataSourceName,
-                        serverEndpointsWithDatasources.stream()
-                            .map(ep -> ep.getAddress() + "=" + ep.getDataSourceName())
-                            .collect(java.util.stream.Collectors.joining(", ")));
+            connectionUrl = httpUrl.getJdbcUrl();
+            cleanUrl = connectionUrl;
+            dataSourceName = "default";
+
+            log.debug("Parsed URL - clean: {}, dataSource: {}", cleanUrl, dataSourceName);
+
+            statementService = new HttpStatementService(httpUrl.getEndpoint());
+        }
+        else {
+            // Parse URL to extract dataSource name(s) and clean URL
+            UrlParser.UrlParseResult urlParseResult = UrlParser.parseUrlWithDataSource(url);
+
+            cleanUrl = urlParseResult.cleanUrl;
+            dataSourceName = urlParseResult.dataSourceName;
+
+            List<String> dataSourceNames = urlParseResult.dataSourceNames;
+
+            log.debug("Parsed URL - clean: {}, dataSource: {}, dataSources: {}", cleanUrl, dataSourceName, dataSourceNames);
+
+            // Get or create the StatementService for these endpoints
+            MultinodeUrlParser.ServiceAndUrl serviceAndUrl = MultinodeUrlParser.getOrCreateStatementService(cleanUrl, dataSourceNames);
+
+            statementService = serviceAndUrl.getService();
+            connectionUrl = serviceAndUrl.getConnectionUrl();
+            serverEndpoints = serviceAndUrl.getServerEndpoints();
+
+            List<ServerEndpoint> serverEndpointsWithDatasources = serviceAndUrl.getServerEndpointsWithDatasources();
+
+            // Warn when multiple endpoints carry distinct datasource names so that operators
+            // are aware of the per-server routing that will be applied.
+            if (serverEndpointsWithDatasources.size() > 1) {
+                boolean hasMultipleDatasources = serverEndpointsWithDatasources.stream()
+                    .map(ServerEndpoint::getDataSourceName)
+                    .distinct()
+                    .count() > 1;
+
+                if (hasMultipleDatasources) {
+                    log.warn("Per-endpoint datasources detected. Currently using first datasource '{}' for connection properties. " +
+                            "Per-server configuration will be applied based on server endpoint datasource names: {}",
+                            dataSourceName,
+                            serverEndpointsWithDatasources.stream()
+                                .map(ep -> ep.getAddress() + "=" + ep.getDataSourceName())
+                                .collect(java.util.stream.Collectors.joining(", ")));
+                }
             }
         }
 
@@ -87,10 +116,12 @@ public class Driver implements java.sql.Driver {
                 .setPassword((String) ((info.get(PASSWORD) != null) ? info.get(PASSWORD) : ""))
                 .setClientUUID(ClientUUID.getUUID());
 
-        // Always add all server endpoints for cluster coordination
-        connBuilder.addAllServerEndpoints(serverEndpoints);
-        log.info("Adding {} server endpoint(s) to ConnectionDetails", serverEndpoints.size());
+        if (serverEndpoints != null) {
+            // Always add all server endpoints for cluster coordination
+            connBuilder.addAllServerEndpoints(serverEndpoints);
 
+            log.info("Adding {} server endpoint(s) to ConnectionDetails", serverEndpoints.size());
+        }
         // Build combined properties map: file (ojp.properties) takes lowest priority;
         // inline ojp.* properties from info override the file so callers can supply
         // read/write splitting and other configuration directly via
@@ -122,7 +153,6 @@ public class Driver implements java.sql.Driver {
             connBuilder.addAllProperties(ProtoConverter.propertiesToProto(propertiesMap));
             log.debug("Loaded {} properties for dataSource: {}", propertiesMap.size(), dataSourceName);
         }
-
         log.info("Calling connect() on statement service with URL: {}", connectionUrl);
         SessionInfo sessionInfo;
         try {
@@ -148,8 +178,6 @@ public class Driver implements java.sql.Driver {
         return new Connection(sessionInfo, statementService, DatabaseUtils.resolveDbName(cleanUrl),
                 closeSynchronously, throttleMode);
     }
-
-
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {
