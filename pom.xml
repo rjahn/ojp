@@ -9,7 +9,7 @@
     <packaging>pom</packaging>
 
     <name>OJP Parent</name>
-    <url>https://github.com/Open-J-Proxy/ojp</url>
+    <url>https://github.com/rjahn/ojp</url>
     <description>Parent pom for OJP (Open J Proxy)</description>
 
     <modules>
@@ -304,9 +304,9 @@
 
 <!-- Add SCM and project info for Maven Central requirements -->
     <scm>
-        <url>https://github.com/sibvisions/ojp</url>
-        <connection>scm:git:https://github.com/sibvisions/ojp.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/sibvisions/ojp.git</developerConnection>
+        <url>https://github.com/rjahn/ojp</url>
+        <connection>scm:git:https://github.com/rjahn/ojp.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/rjahn/ojp.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
