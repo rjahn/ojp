@@ -1,8 +1,8 @@
 # OJP HTTP Servlet transport
 
-This module exposes the existing OJP `StatementServiceImpl` through HTTP(S) for deployment in a Jakarta Servlet 6 compatible container such as Tomcat 10.1+.
+This module exposes the existing OJP `StatementServiceImpl` through HTTP(S) for deployment in a Jakarta Servlet compatible container such as Tomcat 10+.
 
-The transport targets Java 21 and does not implement JDBC operations itself. It maps HTTP requests to the existing OJP protobuf messages and `StatementServiceImpl` methods.
+The transport does not implement JDBC operations itself. It maps HTTP requests to the existing OJP protobuf messages and `StatementServiceImpl` methods.
 
 ## Endpoint
 
@@ -60,7 +60,7 @@ The part before `]_` is the OJP HTTP endpoint. The JDBC URL after `]_` is sent t
 
 ## Tomcat
 
-Deploy `ojp.war` to Tomcat 10.1+ and configure the normal OJP server properties/drivers as required by the existing OJP server module.
+Deploy `ojp.war` to Tomcat 10+ and configure the normal OJP server properties/drivers as required by the existing OJP server module.
 
 Use HTTPS at Tomcat or at a reverse proxy. Authentication/authorization is intentionally not part of this transport module; protect the endpoint with the existing infrastructure (mTLS, reverse proxy authentication, network ACLs, etc.).
 

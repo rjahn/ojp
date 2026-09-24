@@ -304,9 +304,9 @@
 
 <!-- Add SCM and project info for Maven Central requirements -->
     <scm>
-        <url>https://github.com/Open-J-Proxy/ojp</url>
-        <connection>scm:git:https://github.com/Open-J-Proxy/ojp.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/Open-J-Proxy/ojp.git</developerConnection>
+        <url>https://github.com/sibvisions/ojp</url>
+        <connection>scm:git:https://github.com/sibvisions/ojp.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/sibvisions/ojp.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -326,6 +326,10 @@
         <developer>
             <id>petruki</id>
             <name>Roger Floriano</name>
+        </developer>
+        <developer>
+            <id>rjahn</id>
+            <name>René Jahn</name>
         </developer>
     </developers>
 
